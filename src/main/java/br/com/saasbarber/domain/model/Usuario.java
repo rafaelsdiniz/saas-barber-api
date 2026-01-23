@@ -54,4 +54,9 @@ public class Usuario extends DefaultEntity {
     public void setBarbearia(Barbearia barbearia) {
         this.barbearia = barbearia;
     }
+
+    public String getNome() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getNome'");
+    }
 }

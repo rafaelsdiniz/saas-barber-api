@@ -10,9 +10,6 @@ public record AgendamentoRequestDTO(
     @NotNull(message = "Barbearia é obrigatória")
     Long barbeariaId,
 
-    @NotNull(message = "Usuário é obrigatório")
-    Long usuarioClienteId,
-
     @NotNull(message = "Barbeiro é obrigatório")
     Long barbeiroId,
 

@@ -13,10 +13,6 @@ public class Agendamento extends DefaultEntity {
     @JoinColumn(name = "barbearia_id", nullable = false)
     private Barbearia barbearia;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "usuario_cliente_id", nullable = false)
-    private UsuarioCliente usuarioCliente;
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "barbeiro_id", nullable = false)
     private Barbeiro barbeiro;
@@ -24,6 +20,10 @@ public class Agendamento extends DefaultEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "servico_id", nullable = false)
     private Servico servico;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "cliente_id", nullable = false)
+    private Cliente cliente;
 
     @Column(name = "data_hora", nullable = false)
     private LocalDateTime dataHora;
@@ -40,22 +40,12 @@ public class Agendamento extends DefaultEntity {
         }
     }
 
-    // GETTERS E SETTERS
-
     public Barbearia getBarbearia() {
         return barbearia;
     }
 
     public void setBarbearia(Barbearia barbearia) {
         this.barbearia = barbearia;
-    }
-
-    public UsuarioCliente getUsuarioCliente() {
-        return usuarioCliente;
-    }   
-
-    public void setUsuarioCliente(UsuarioCliente usuarioCliente) {
-        this.usuarioCliente = usuarioCliente;
     }
 
     public Barbeiro getBarbeiro() {
@@ -74,6 +64,14 @@ public class Agendamento extends DefaultEntity {
         this.servico = servico;
     }
 
+    public Cliente getCliente() {
+        return cliente;
+    }
+
+    public void setCliente(Cliente cliente) {
+        this.cliente = cliente;
+    }
+
     public LocalDateTime getDataHora() {
         return dataHora;
     }
@@ -89,4 +87,6 @@ public class Agendamento extends DefaultEntity {
     public void setStatus(StatusAgendamento status) {
         this.status = status;
     }
+
+   
 }

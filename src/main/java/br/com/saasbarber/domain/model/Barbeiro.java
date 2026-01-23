@@ -20,6 +20,10 @@ public class Barbeiro extends DefaultEntity {
     @JoinColumn(name = "barbearia_id")
     private Barbearia barbearia;
 
+    /** URL da foto no Cloudflare R2 */
+    @Column(name = "foto_url", length = 500)
+    private String fotoUrl;
+
     // GETTERS E SETTERS
 
     public String getNome() {
@@ -46,4 +50,11 @@ public class Barbeiro extends DefaultEntity {
         this.barbearia = barbearia;
     }
 
+    public String getFotoUrl() {
+        return fotoUrl;
+    }
+
+    public void setFotoUrl(String fotoUrl) {
+        this.fotoUrl = fotoUrl;
+    }
 }

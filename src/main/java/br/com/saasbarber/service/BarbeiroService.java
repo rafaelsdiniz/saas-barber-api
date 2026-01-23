@@ -27,6 +27,7 @@ public class BarbeiroService {
         b.setNome(dto.nome());
         b.setTelefone(new Telefone(dto.telefone()));
         b.setBarbearia(barbeariaRepository.findById(dto.barbeariaId()));
+        b.setFotoUrl(dto.fotoUrl()); // 👈 AQUI
         repository.persist(b);
         return toResponse(b);
     }
@@ -49,7 +50,8 @@ public class BarbeiroService {
         return new BarbeiroResponseDTO(
                 b.getId(),
                 b.getNome(),
-                b.getTelefone().getNumero()
+                b.getTelefone().getNumero(),
+                b.getFotoUrl()
         );
     }
 }

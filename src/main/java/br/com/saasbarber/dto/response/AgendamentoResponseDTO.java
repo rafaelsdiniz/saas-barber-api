@@ -6,16 +6,20 @@ public record AgendamentoResponseDTO(
 
     Long id,
 
-    Long usuarioClienteId,
+    // 👤 CLIENTE
+    Long clienteId,
     String clienteNome,
     String clienteTelefone,
 
+    // ✂️ BARBEIRO
     Long barbeiroId,
     String barbeiroNome,
 
+    // 💼 SERVIÇO
     Long servicoId,
     String servicoNome,
 
+    // ⏰ DATA / STATUS
     LocalDateTime dataHora,
     String status
 

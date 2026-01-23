@@ -25,7 +25,7 @@ public class UsuarioService {
     @Transactional
     public UsuarioResponseDTO criar(UsuarioRequestDTO dto) {
 
-        if (repository.findByEmail(dto.email()).isPresent()) {
+        if (repository.findByEmailEndereco(dto.email()).isPresent()) {
             throw new RuntimeException("Email já cadastrado");
         }
 

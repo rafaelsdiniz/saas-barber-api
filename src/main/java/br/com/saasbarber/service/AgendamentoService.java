@@ -1,15 +1,24 @@
 package br.com.saasbarber.service;
 
+import br.com.saasbarber.domain.enums.PerfilUsuario;
 import br.com.saasbarber.domain.enums.StatusAgendamento;
 import br.com.saasbarber.domain.model.Agendamento;
-import br.com.saasbarber.domain.model.UsuarioCliente;
+import br.com.saasbarber.domain.model.Cliente;
+import br.com.saasbarber.domain.model.Servico;
+import br.com.saasbarber.domain.model.Usuario;
 import br.com.saasbarber.dto.request.AgendamentoRequestDTO;
 import br.com.saasbarber.dto.response.AgendamentoResponseDTO;
-import br.com.saasbarber.repository.*;
+import br.com.saasbarber.repository.AgendamentoRepository;
+import br.com.saasbarber.repository.BarbeariaRepository;
+import br.com.saasbarber.repository.BarbeiroRepository;
+import br.com.saasbarber.repository.ClienteRepository;
+import br.com.saasbarber.repository.ServicoRepository;
+import br.com.saasbarber.repository.UsuarioRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,13 +27,16 @@ import java.util.List;
 public class AgendamentoService {
 
     @Inject
-    AgendamentoRepository repository;
+    AgendamentoRepository agendamentoRepository;
+
+    @Inject
+    UsuarioRepository usuarioRepository;
+
+    @Inject
+    ClienteRepository clienteRepository;
 
     @Inject
     BarbeariaRepository barbeariaRepository;
-
-    @Inject
-    UsuarioClienteRepository usuarioClienteRepository;
 
     @Inject
     BarbeiroRepository barbeiroRepository;
@@ -32,85 +44,135 @@ public class AgendamentoService {
     @Inject
     ServicoRepository servicoRepository;
 
-    @Transactional
-    public AgendamentoResponseDTO criar(@Valid AgendamentoRequestDTO dto) {
+    @Inject
+    JsonWebToken jwt;
 
-        UsuarioCliente usuarioCliente =
-                usuarioClienteRepository.findById(dto.usuarioClienteId());
+    // ======================================================
+    // CRIAR AGENDAMENTO
+    // ======================================================
+   @Transactional
+public AgendamentoResponseDTO criar(@Valid AgendamentoRequestDTO dto) {
 
-        if (usuarioCliente == null) {
-            throw new RuntimeException("Usuário não encontrado");
-        }
+    // 🔑 Usuário autenticado
+    String email = jwt.getSubject();
+    Usuario usuarioLogado = usuarioRepository
+            .findByEmailEndereco(email)
+            .orElseThrow(() -> new RuntimeException("Usuário não autenticado"));
 
-        var servico = servicoRepository.findById(dto.servicoId());
-        if (servico == null) {
-            throw new RuntimeException("Serviço não encontrado");
-        }
+    // 👤 Cliente SEMPRE vem do usuário logado
+    Cliente cliente = clienteRepository.findByUsuarioId(usuarioLogado.getId());
 
-        LocalDateTime inicio = dto.dataHora();
-        LocalDateTime fim = inicio.plusMinutes(servico.getDuracaoMinutos());
-
-        boolean ocupado = !repository
-                .findByBarbeiroAndPeriodo(dto.barbeiroId(), inicio, fim)
-                .isEmpty();
-
-        if (ocupado) {
-            throw new RuntimeException("Horário indisponível para este barbeiro");
-        }
-
-        Agendamento a = new Agendamento();
-        a.setBarbearia(barbeariaRepository.findById(dto.barbeariaId()));
-        a.setUsuarioCliente(usuarioCliente);
-        a.setBarbeiro(barbeiroRepository.findById(dto.barbeiroId()));
-        a.setServico(servico);
-        a.setDataHora(dto.dataHora());
-        a.setStatus(StatusAgendamento.PENDENTE);
-
-        repository.persist(a);
-        return toResponse(a);
+    if (cliente == null) {
+        throw new RuntimeException("Cliente não vinculado ao usuário logado");
     }
 
+    // 🏪 Barbearia
+    var barbearia = barbeariaRepository.findById(dto.barbeariaId());
+    if (barbearia == null) {
+        throw new RuntimeException("Barbearia não encontrada");
+    }
+
+    // ✂️ Serviço
+    Servico servico = servicoRepository.findById(dto.servicoId());
+    if (servico == null) {
+        throw new RuntimeException("Serviço não encontrado");
+    }
+
+    // ⏱️ Validação de horário
+    LocalDateTime inicio = dto.dataHora();
+    LocalDateTime fim = inicio.plusMinutes(servico.getDuracaoMinutos());
+
+    boolean barbeiroOcupado = !agendamentoRepository
+            .findByBarbeiroAndPeriodo(dto.barbeiroId(), inicio, fim)
+            .isEmpty();
+
+    if (barbeiroOcupado) {
+        throw new RuntimeException("Horário indisponível para este barbeiro");
+    }
+
+    // 🧾 Criar agendamento
+    Agendamento agendamento = new Agendamento();
+    agendamento.setBarbearia(barbearia);
+    agendamento.setCliente(cliente);
+    agendamento.setBarbeiro(barbeiroRepository.findById(dto.barbeiroId()));
+    agendamento.setServico(servico);
+    agendamento.setDataHora(dto.dataHora());
+    agendamento.setStatus(StatusAgendamento.PENDENTE);
+
+    agendamentoRepository.persist(agendamento);
+
+    return toResponse(agendamento);
+}
+
+
+    // ======================================================
+    // LISTAR POR BARBEIRO
+    // ======================================================
     public List<AgendamentoResponseDTO> listarPorBarbeiro(Long barbeiroId) {
-        return repository.find("barbeiro.id", barbeiroId)
+        return agendamentoRepository.find("barbeiro.id", barbeiroId)
                 .list()
                 .stream()
                 .map(this::toResponse)
                 .toList();
     }
 
+    public List<AgendamentoResponseDTO> listarPorBarbearia(Long barbeariaId) {
+    return agendamentoRepository.find("barbearia.id", barbeariaId)
+            .list()
+            .stream()
+            .map(this::toResponse)
+            .toList();
+}
+
+
+    // ======================================================
+    // CONFIRMAR AGENDAMENTO
+    // ======================================================
     @Transactional
     public void confirmar(Long id) {
-        Agendamento a = repository.findById(id);
+        Agendamento a = agendamentoRepository.findById(id);
         if (a == null) {
             throw new RuntimeException("Agendamento não encontrado");
         }
         a.setStatus(StatusAgendamento.CONFIRMADO);
     }
 
+    // ======================================================
+    // CANCELAR AGENDAMENTO
+    // ======================================================
     @Transactional
     public void cancelar(Long id) {
-        Agendamento a = repository.findById(id);
+        Agendamento a = agendamentoRepository.findById(id);
         if (a == null) {
             throw new RuntimeException("Agendamento não encontrado");
         }
         a.setStatus(StatusAgendamento.CANCELADO);
     }
 
+    // ======================================================
+    // MAPEAMENTO RESPONSE DTO
+    // ======================================================
     private AgendamentoResponseDTO toResponse(Agendamento a) {
-    var uc = a.getUsuarioCliente();
 
-    return new AgendamentoResponseDTO(
-            a.getId(),
-            uc.getId(),
-            uc.getCliente().getNome(),
-            uc.getCliente().getTelefone().getNumero(),
-            a.getBarbeiro().getId(),
-            a.getBarbeiro().getNome(),
-            a.getServico().getId(),
-            a.getServico().getNome(),
-            a.getDataHora(),
-            a.getStatus().name()
-    );
-}
+        Cliente cliente = a.getCliente();
 
+        return new AgendamentoResponseDTO(
+                a.getId(),
+
+                cliente.getId(),
+                cliente.getNome(),
+                cliente.getTelefone() != null
+                        ? cliente.getTelefone().getNumero()
+                        : null,
+
+                a.getBarbeiro().getId(),
+                a.getBarbeiro().getNome(),
+
+                a.getServico().getId(),
+                a.getServico().getNome(),
+
+                a.getDataHora(),
+                a.getStatus().name()
+        );
+    }
 }

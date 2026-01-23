@@ -4,6 +4,7 @@ public record BarbeiroResponseDTO(
 
     Long id,
     String nome,
-    String telefone
+    String telefone,
+    String fotoUrl
 
 ) {}

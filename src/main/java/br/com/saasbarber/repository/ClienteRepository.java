@@ -12,4 +12,8 @@ public class ClienteRepository implements PanacheRepository<Cliente> {
     public List<Cliente> findByBarbeariaId(Long barbeariaId) {
         return find("barbearia.id = ?1", barbeariaId).list();
     }
+
+    public Cliente findByUsuarioId(Long usuarioId) {
+        return find("usuario.id", usuarioId).firstResult();
+    }
 }

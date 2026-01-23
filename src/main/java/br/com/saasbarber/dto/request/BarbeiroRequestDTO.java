@@ -15,6 +15,9 @@ public record BarbeiroRequestDTO(
     String telefone,
 
     @NotNull(message = "Barbearia é obrigatória")
-    Long barbeariaId
+    Long barbeariaId,
+
+    /** URL da imagem já enviada para o R2 */
+    String fotoUrl
 
 ) {}
